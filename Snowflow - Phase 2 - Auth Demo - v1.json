@@ -1,0 +1,858 @@
+{
+  "name": "Snowflow - Phase 2 - Auth Demo - v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        -16
+      ],
+      "id": "2e1c7793-9bad-4d82-8ca6-27a60438574e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"event_type\": \"integration_auth_failure\",\n  \"customer_id\": \"cust_1029\",\n  \"customer_name\": \"Acme Health\",\n  \"integration_name\": \"Salesforce\",\n  \"error_code\": \"401_INVALID_CREDENTIALS\",\n  \"raw_error_message\": \"Authentication failed: invalid client secret\",\n  \"retry_count\": 2,\n  \"source\": \"manual_demo_trigger\",\n  \"timestamp\": \"{{ $now }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -272
+      ],
+      "id": "224127c5-ea9c-4739-88ab-5d8e243a2301",
+      "name": "Invalid Credentials Payload"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7cd11634-8f18-4303-99e4-35c62823ab2d",
+              "name": "event_type",
+              "value": "integration_auth_failure",
+              "type": "string"
+            },
+            {
+              "id": "117a8b0e-4da6-47d7-b61d-15fc045c26a6",
+              "name": "customer_id",
+              "value": "cust_2048",
+              "type": "string"
+            },
+            {
+              "id": "5b3d1192-d2ef-450b-a717-22a76df7fbf8",
+              "name": "customer_name",
+              "value": "BrightPath Labs",
+              "type": "string"
+            },
+            {
+              "id": "b43232eb-72eb-4cc7-b0cf-ec24f93a859c",
+              "name": "integration_name",
+              "value": "HubSpot",
+              "type": "string"
+            },
+            {
+              "id": "a2ce0485-933c-4032-b322-fd3ef32ad1fa",
+              "name": "error_code",
+              "value": "TOKEN_EXPIRED",
+              "type": "string"
+            },
+            {
+              "id": "82c2d164-2297-41b1-9d4b-8e59ebec2691",
+              "name": "raw_error_message",
+              "value": "OAuth token has expired and must be refreshed",
+              "type": "string"
+            },
+            {
+              "id": "0beecd45-4c4f-45ea-82f5-5fe05fd5e722",
+              "name": "retry_count",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "d3cab90a-76dc-4ae7-9251-d4ab0ce1e23b",
+              "name": "source",
+              "value": "manual_demo_trigger",
+              "type": "string"
+            },
+            {
+              "id": "700147c5-d94d-4f0f-98d2-4c1ec71ac576",
+              "name": "timestamp",
+              "value": "={{$now}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -80
+      ],
+      "id": "11f09600-f41d-47ea-bfa1-5d5d83dea356",
+      "name": "Expired Token Payload"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"event_type\": \"integration_auth_failure\",\n  \"customer_id\": \"cust_3099\",\n  \"customer_name\": \"Northstar Analytics\",\n  \"integration_name\": \"Salesforce\",\n  \"error_code\": \"INSUFFICIENT_SCOPE\",\n  \"raw_error_message\": \"Access denied: missing required permission scopes\",\n  \"retry_count\": 2,\n  \"source\": \"manual_demo_trigger\",\n  \"timestamp\": \"{{ $now }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        112
+      ],
+      "id": "e501dfa2-b5fd-4f3b-9e19-7612e29665c8",
+      "name": "Permission Issue Payload"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\n\nconst errorCode = item.error_code || \"\";\nconst rawMessage = (item.raw_error_message || \"\").toLowerCase();\n\nlet classifiedCause = \"unknown_auth_issue\";\nlet classifiedLabel = \"Unknown Authentication Issue\";\nlet confidence = \"medium\";\nlet resolutionPath = \"escalate\";\nlet recommendedAction = \"Route to support for manual review\";\n\nif (\n  errorCode === \"401_INVALID_CREDENTIALS\" ||\n  rawMessage.includes(\"invalid client secret\") ||\n  rawMessage.includes(\"invalid credentials\")\n) {\n  classifiedCause = \"invalid_credentials\";\n  classifiedLabel = \"Invalid Credentials\";\n  confidence = \"high\";\n  resolutionPath = \"guided_fix\";\n  recommendedAction = \"Send credential reset and configuration guidance\";\n} else if (\n  errorCode === \"TOKEN_EXPIRED\" ||\n  rawMessage.includes(\"token expired\") ||\n  rawMessage.includes(\"must be refreshed\")\n) {\n  classifiedCause = \"expired_token\";\n  classifiedLabel = \"Expired Token\";\n  confidence = \"high\";\n  resolutionPath = \"guided_fix\";\n  recommendedAction = \"Send re-authentication instructions\";\n} else if (\n  errorCode === \"INSUFFICIENT_SCOPE\" ||\n  rawMessage.includes(\"missing required permission scopes\") ||\n  rawMessage.includes(\"access denied\")\n) {\n  classifiedCause = \"permission_scope_issue\";\n  classifiedLabel = \"Permission Scope Issue\";\n  confidence = \"high\";\n  resolutionPath = \"guided_fix\";\n  recommendedAction = \"Send permissions update instructions\";\n}\n\nreturn {\n  ...item,\n  classified_cause: classifiedCause,\n  classified_label: classifiedLabel,\n  confidence: confidence,\n  resolution_path: resolutionPath,\n  recommended_action: recommendedAction\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "c5c593d7-272b-420b-9797-dd0d0a24bd76",
+      "name": "Classify Auth Failure"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6b3348ae-a26b-4a22-8091-4bcdc94899b4",
+              "leftValue": "={{ $json.resolution_path }}",
+              "rightValue": "guided_fix",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "03bb499c-2b05-411a-a887-f9bef55d2aba",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "5a0159d4-e7ba-4c03-85db-bd3fd0c40288",
+              "leftValue": "={{ $json.retry_count }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        128,
+        -16
+      ],
+      "id": "e382c5f8-704c-4158-8c5c-648fcc500bf7",
+      "name": "Decision Engine"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6bf9c36-6125-4097-8926-33e075396118",
+              "name": "response_type",
+              "value": "guided_fix",
+              "type": "string"
+            },
+            {
+              "id": "01c8a2cc-ef46-4fbc-8eef-fbd5de81a7b1",
+              "name": "user_message",
+              "value": "={{\n  $json.classified_cause === \"invalid_credentials\"\n    ? \"Your credentials appear to be incorrect. Please verify your client ID and secret, then reconnect your integration.\"\n    : $json.classified_cause === \"expired_token\"\n    ? \"Your connection has expired. Please re-authenticate your integration to restore access.\"\n    : $json.classified_cause === \"permission_scope_issue\"\n    ? \"Your integration is missing required permissions. Please update your access scopes and reconnect.\"\n    : \"We detected an authentication issue. Please review your integration settings.\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "c6300211-c2ba-4a05-96f7-d2541cab7938",
+              "name": "next_step_url",
+              "value": "={{\n  $json.classified_cause === \"invalid_credentials\"\n    ? \"https://docs.yourapp.com/integrations/credentials\"\n    : $json.classified_cause === \"expired_token\"\n    ? \"https://docs.yourapp.com/integrations/reconnect\"\n    : $json.classified_cause === \"permission_scope_issue\"\n    ? \"https://docs.yourapp.com/integrations/permissions\"\n    : \"https://docs.yourapp.com/support\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "68a5a356-e2cb-4c38-8070-91a3b2a34bbf",
+              "name": "resolution_status",
+              "value": "guided_resolution_sent",
+              "type": "string"
+            },
+            {
+              "id": "22e512b3-5c81-41c3-85ec-d691cf064f40",
+              "name": "channel",
+              "value": "in_app_or_email",
+              "type": "string"
+            },
+            {
+              "id": "67cfbef2-8039-4974-bc68-357972273846",
+              "name": "classified_cause",
+              "value": "={{ $json.classified_cause }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        -128
+      ],
+      "id": "9feae06d-5cac-48cf-9e21-efcd29abee08",
+      "name": "Build Guided Fix Response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "843634fe-1642-43de-8565-dfbffb7abc3b",
+              "name": "response_type",
+              "value": "escalation",
+              "type": "string"
+            },
+            {
+              "id": "5441b17f-7804-486d-95d1-09c96cdde6de",
+              "name": "escalation_reason",
+              "value": "={{\n  $json.confidence !== \"high\"\n    ? \"Low classification confidence\"\n    : Number($json.retry_count) > 2\n    ? \"Repeated failed attempts\"\n    : $json.resolution_path === \"escalate\"\n    ? \"Requires manual review\"\n    : \"Unhandled authentication issue\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "7ccf9be6-c2e2-420f-a098-d060c3d5d86d",
+              "name": "support_summary",
+              "value": "={{\n  \"Customer \" + $json.customer_name +\n  \" experienced an integration authentication failure for \" + $json.integration_name +\n  \". Classified cause: \" + $json.classified_label +\n  \". Error code: \" + $json.error_code +\n  \". Retry count: \" + $json.retry_count +\n  \". Recommended action: \" + $json.recommended_action + \".\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "645c3191-a52c-4059-ae8d-e9d1fdd16293",
+              "name": "ticket_priority",
+              "value": "={{   Number($json.retry_count) > 2 ? \"high\" : \"normal\" }}",
+              "type": "string"
+            },
+            {
+              "id": "6c8ab286-ceb9-4101-924e-d3fd55b16168",
+              "name": "resolution_status",
+              "value": "escalated_to_support",
+              "type": "string"
+            },
+            {
+              "id": "928f612f-ee88-43d6-926f-bae85851ba0f",
+              "name": "handoff_context_attached",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "be274c03-f2a4-456a-b7ae-980e12a970b7",
+              "name": "classified_cause",
+              "value": "={{ $json.classified_cause }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        48
+      ],
+      "id": "ddafbc8e-0b6a-4e92-8de7-20e7c8ef42af",
+      "name": "Prepare Escalation Context"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d8389e77-3495-4b70-9285-b9fe104295e6",
+              "name": "event_type",
+              "value": "integration_auth_failure",
+              "type": "string"
+            },
+            {
+              "id": "6d3ca1af-a2cd-460c-a7af-d17271113213",
+              "name": "customer_id",
+              "value": "cust_4111",
+              "type": "string"
+            },
+            {
+              "id": "e4ca6e02-41e1-4328-90c6-389878a34c25",
+              "name": "customer_name",
+              "value": "DeltaCore Systems",
+              "type": "string"
+            },
+            {
+              "id": "433c0b1e-8f74-41a6-9a57-06dc6e7e1054",
+              "name": "integration_name",
+              "value": "NetSuite",
+              "type": "string"
+            },
+            {
+              "id": "dd127144-e292-4490-b80a-86307d07e874",
+              "name": "error_code",
+              "value": "AUTH_UNKNOWN",
+              "type": "string"
+            },
+            {
+              "id": "3be76d00-93fd-4f03-bba2-bad82215ea08",
+              "name": "raw_error_message",
+              "value": "Authentication failed due to unexpected provider response",
+              "type": "string"
+            },
+            {
+              "id": "479b95e6-8cfa-4ff0-a6d3-059e125de722",
+              "name": "retry_count",
+              "value": 4,
+              "type": "number"
+            },
+            {
+              "id": "1d17b6b5-bb8e-4ad8-bd28-44d5bbcc5601",
+              "name": "source",
+              "value": "manual_demo_trigger",
+              "type": "string"
+            },
+            {
+              "id": "d59775e1-125c-4540-b4ad-cd0142ff7d70",
+              "name": "timestamp",
+              "value": "={{$now}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        304
+      ],
+      "id": "445c146e-645b-4445-a5f6-377d85347477",
+      "name": "Unknown Auth Failure"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5e3fc0b7-d358-47d6-87d5-abc4454343d7",
+              "name": "action_taken",
+              "value": "={{ $json.response_type }}",
+              "type": "string"
+            },
+            {
+              "id": "b3bdf3e6-33c2-4dd0-be5b-2459d40c8341",
+              "name": "delivery_channel",
+              "value": "={{ $json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "f7dd34d8-ea26-4958-b6ee-87efc273a612",
+              "name": "resolution_type",
+              "value": "self_service",
+              "type": "string"
+            },
+            {
+              "id": "78326834-c5dc-4702-ba90-ea1d91313c37",
+              "name": "demo_status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "c852e4cf-6140-451d-a7c9-d173234b6940",
+              "name": "message_to_user",
+              "value": "={{ $json.user_message }}",
+              "type": "string"
+            },
+            {
+              "id": "2c0d7f3a-14c7-43a5-a67a-feb1e8a453bb",
+              "name": "next_step_url",
+              "value": "={{ $json.next_step_url }}",
+              "type": "string"
+            },
+            {
+              "id": "fd6fa35b-c599-4e10-90fd-b6167c6dbe5e",
+              "name": "resolution_status",
+              "value": "={{ $json.resolution_status }}",
+              "type": "string"
+            },
+            {
+              "id": "a1a56981-64f3-4999-bc9a-07eeb6202f0b",
+              "name": "automation_path",
+              "value": "guided_fix_flow",
+              "type": "string"
+            },
+            {
+              "id": "2a4e37d9-619b-41f5-b689-70b34506ab7e",
+              "name": "business_outcome",
+              "value": "Ticket avoided through automated resolution",
+              "type": "string"
+            },
+            {
+              "id": "51a70a90-181f-4d9c-a6c6-be34710399aa",
+              "name": "requires_agent",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "19dce5eb-9bda-4a93-ad14-ce01ca01bcf0",
+              "name": "classified_cause",
+              "value": "={{ $json.classified_cause }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        576,
+        -128
+      ],
+      "id": "60c96c3b-301f-4f04-bc9e-4904ca14c109",
+      "name": "Simulated User Resolution Sent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "782db4de-8a20-420d-b081-231d71d1d5b3",
+              "name": "action_taken",
+              "value": "={{ $json.response_type }}",
+              "type": "string"
+            },
+            {
+              "id": "329563da-87e2-4377-8e27-8281eaa01a60",
+              "name": "escalation_reason",
+              "value": "={{ $json.escalation_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "9073cfa7-9b28-4d00-8818-3bd37f06ca6e",
+              "name": "ticket_priority",
+              "value": "={{ $json.ticket_priority }}",
+              "type": "string"
+            },
+            {
+              "id": "c0e6bdf7-4098-4a96-adbc-71d52235c584",
+              "name": "support_summary",
+              "value": "={{ $json.support_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "839f672e-c2dc-4f60-9890-b1e63e8ada34",
+              "name": "resolution_status",
+              "value": "={{ $json.resolution_status }}",
+              "type": "string"
+            },
+            {
+              "id": "30b79a06-99fb-4bc8-971e-f179bf659fa1",
+              "name": "handoff_context_attached",
+              "value": "={{ $json.handoff_context_attached }}",
+              "type": "string"
+            },
+            {
+              "id": "74074a61-5894-40ec-bc5e-e9aed8947e48",
+              "name": "demo_status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "636baebe-4c81-4ca6-8e00-1bf80343ca58",
+              "name": "automation_path",
+              "value": "escalation_flow",
+              "type": "string"
+            },
+            {
+              "id": "7361068f-981c-4751-a6e0-b29c75ef1399",
+              "name": "business_outcome",
+              "value": "Issue routed to support with context attached",
+              "type": "string"
+            },
+            {
+              "id": "84ba2302-b918-49ec-b187-06eeaf7b88a4",
+              "name": "requires_agent",
+              "value": "true",
+              "type": "string"
+            },
+            {
+              "id": "ab5097e4-cae7-425f-a8a6-08eae7987a29",
+              "name": "ticket_created_in",
+              "value": "Zendesk or ServiceNow",
+              "type": "string"
+            },
+            {
+              "id": "b8189c7e-10ee-44ee-8fe7-3325af65e57a",
+              "name": "routing_type",
+              "value": "manual_review_required",
+              "type": "string"
+            },
+            {
+              "id": "549b5da1-7d69-4e67-a3bd-27b97c769998",
+              "name": "classified_cause",
+              "value": "={{ $json.classified_cause }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        576,
+        48
+      ],
+      "id": "06e17ded-1285-4d7c-9d60-df6cea93c8c2",
+      "name": "Simulation Escalation Created"
+    },
+    {
+      "parameters": {
+        "tableId": "auth_failure_resolution_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "event_id",
+              "fieldValue": "={{ $now.toISO() + '-guided-' + Math.floor(Math.random() * 100000) }}"
+            },
+            {
+              "fieldId": "run_timestamp",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "company_name",
+              "fieldValue": "DeltaCore Systems"
+            },
+            {
+              "fieldId": "issue_type",
+              "fieldValue": "authentication_failure"
+            },
+            {
+              "fieldId": "classified_cause",
+              "fieldValue": "={{ $json.classified_cause }}"
+            },
+            {
+              "fieldId": "decision_path",
+              "fieldValue": "={{ $json.automation_path }}"
+            },
+            {
+              "fieldId": "action_taken",
+              "fieldValue": "={{ $json.action_taken }}"
+            },
+            {
+              "fieldId": "resolution_status",
+              "fieldValue": "={{ $json.resolution_status }}"
+            },
+            {
+              "fieldId": "requires_agent",
+              "fieldValue": "={{ false }}"
+            },
+            {
+              "fieldId": "delivery_channel",
+              "fieldValue": "={{ $json.delivery_channel }}"
+            },
+            {
+              "fieldId": "business_outcome",
+              "fieldValue": "={{ $json.business_outcome }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        784,
+        -128
+      ],
+      "id": "2c72bcf8-0889-4662-bfb8-49bec6c8737f",
+      "name": "Log User Resolution Path",
+      "credentials": {
+        "supabaseApi": {
+          "id": "43k8Du3DnGC3DBZ5",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "auth_failure_resolution_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "event_id",
+              "fieldValue": "={{ $now.toISO() + '-escalation-' + Math.floor(Math.random() * 100000) }}"
+            },
+            {
+              "fieldId": "run_timestamp",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "company_name",
+              "fieldValue": "DeltaCore Systems"
+            },
+            {
+              "fieldId": "issue_type",
+              "fieldValue": "authentication_failure"
+            },
+            {
+              "fieldId": "classified_cause",
+              "fieldValue": "={{ $json.classified_cause }}"
+            },
+            {
+              "fieldId": "decision_path",
+              "fieldValue": "={{ $json.automation_path }}"
+            },
+            {
+              "fieldId": "action_taken",
+              "fieldValue": "={{ $json.action_taken }}"
+            },
+            {
+              "fieldId": "resolution_status",
+              "fieldValue": "={{ $json.resolution_status }}"
+            },
+            {
+              "fieldId": "requires_agent",
+              "fieldValue": "={{ true }}"
+            },
+            {
+              "fieldId": "ticket_priority",
+              "fieldValue": "={{ $json.ticket_priority }}"
+            },
+            {
+              "fieldId": "escalation_reason",
+              "fieldValue": "={{ $json.escalation_reason }}"
+            },
+            {
+              "fieldId": "business_outcome",
+              "fieldValue": "={{ $json.business_outcome }}"
+            },
+            {
+              "fieldId": "support_summary",
+              "fieldValue": "={{ $json.support_summary }}"
+            },
+            {
+              "fieldId": "scenario_type",
+              "fieldValue": "unknown_auth"
+            },
+            {
+              "fieldId": "automation_confidence",
+              "fieldValue": "={{ 0.9 + (Math.random() * 0.08) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        800,
+        48
+      ],
+      "id": "6217187a-72e8-44ca-8b99-e9e87dbe73b9",
+      "name": "Simulation Escalation Logging",
+      "credentials": {
+        "supabaseApi": {
+          "id": "43k8Du3DnGC3DBZ5",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Invalid Credentials Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Expired Token Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Permission Issue Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Unknown Auth Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invalid Credentials Payload": {
+      "main": [
+        [
+          {
+            "node": "Classify Auth Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expired Token Payload": {
+      "main": [
+        [
+          {
+            "node": "Classify Auth Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Permission Issue Payload": {
+      "main": [
+        [
+          {
+            "node": "Classify Auth Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Auth Failure": {
+      "main": [
+        [
+          {
+            "node": "Decision Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Engine": {
+      "main": [
+        [
+          {
+            "node": "Build Guided Fix Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Escalation Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Guided Fix Response": {
+      "main": [
+        [
+          {
+            "node": "Simulated User Resolution Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Escalation Context": {
+      "main": [
+        [
+          {
+            "node": "Simulation Escalation Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Auth Failure": {
+      "main": [
+        [
+          {
+            "node": "Classify Auth Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulated User Resolution Sent": {
+      "main": [
+        [
+          {
+            "node": "Log User Resolution Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulation Escalation Created": {
+      "main": [
+        [
+          {
+            "node": "Simulation Escalation Logging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulation Escalation Logging": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a1e98a36-d693-4388-84dc-cc17c55717e4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c92027905a1e18f4de6a84dda63aebe0847ce19b98965b0a947a038cf40b6d42"
+  },
+  "id": "mvBM3Ylzq2HI7YbI",
+  "tags": []
+}
